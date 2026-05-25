@@ -1,7 +1,6 @@
 package jobrecommender.service;
 
 import jobrecommender.repository.LogsRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -11,7 +10,6 @@ import java.util.List;
 public class LogsService {
     private final LogsRepository repo;
 
-    @Autowired
     public LogsService(LogsRepository repo) {
         this.repo = repo;
     }

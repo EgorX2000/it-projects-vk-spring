@@ -1,7 +1,6 @@
 package jobrecommender.cli;
 
 import jobrecommender.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
@@ -23,7 +22,6 @@ public class Parser implements CommandLineRunner {
 
     private boolean isRunning = true;
 
-    @Autowired
     public Parser(ApplicationContext applicationContext, Scanner scanner, UserService userService, JobService jobService, SuggestService suggestService, LogsService commandLogger, StatService statService) {
         this.applicationContext = applicationContext;
         this.scanner = scanner;

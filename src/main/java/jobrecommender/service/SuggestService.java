@@ -3,7 +3,6 @@ package jobrecommender.service;
 import jobrecommender.domain.Job;
 import jobrecommender.domain.JobMatch;
 import jobrecommender.domain.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -14,7 +13,6 @@ public class SuggestService {
     private final UserService userService;
     private final JobService jobService;
 
-    @Autowired
     public SuggestService(UserService userService, JobService jobService) {
         this.userService = userService;
         this.jobService = jobService;

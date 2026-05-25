@@ -12,7 +12,7 @@ public class User {
     private final int experience;
 
     public User(String name, Set<String> skills, int experience) {
-        this.name = name;
+        this.name = !name.isBlank() ? name : "Guest";
         this.skills = skills;
         this.experience = experience;
     }
@@ -32,8 +32,8 @@ public class User {
         return name;
     }
 
-    public Collection<String> getSkills() {
-        return Collections.unmodifiableCollection(skills);
+    public Set<String> getSkills() {
+        return Collections.unmodifiableSet(skills);
     }
 
     public int getExperience() {

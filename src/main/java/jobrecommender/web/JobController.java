@@ -3,7 +3,6 @@ package jobrecommender.web;
 import jobrecommender.domain.Job;
 import jobrecommender.dto.CreateJobDTO;
 import jobrecommender.service.JobService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,7 +14,6 @@ import java.util.Collection;
 public class JobController {
     private final JobService jobService;
 
-    @Autowired
     public JobController(JobService jobService) {
         this.jobService = jobService;
     }

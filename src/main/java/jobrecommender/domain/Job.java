@@ -8,12 +8,11 @@ public class Job {
     private final String title;
     private final String company;
     private final Set<String> tags;
-
     private final int requiredExperience;
 
     public Job(String title, String company, Set<String> tags, int requiredExperience) {
-        this.title = title;
-        this.company = company;
+        this.title = !title.isBlank() ? title : "Some job";
+        this.company = !company.isBlank() ? company : "Somewhere";
         this.tags = tags;
         this.requiredExperience = requiredExperience;
     }
@@ -26,8 +25,8 @@ public class Job {
         return company;
     }
 
-    public Collection<String> getTags() {
-        return Collections.unmodifiableCollection(tags);
+    public Set<String> getTags() {
+        return Collections.unmodifiableSet(tags);
     }
 
     public int getRequiredExperience() {
