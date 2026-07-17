@@ -1,6 +1,7 @@
 package jobrecommender.cli;
 
-import jobrecommender.service.*;
+import jobrecommender.service.LogsService;
+import jobrecommender.service.StringCommandsHandlerService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
@@ -8,7 +9,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.function.Consumer;
 
 @Component
@@ -16,41 +19,29 @@ import java.util.function.Consumer;
 public class Parser implements CommandLineRunner {
     private final ApplicationContext applicationContext;
     private final Scanner scanner;
-    private final UserService userService;
-    private final JobService jobService;
-    private final StatService statService;
     private final LogsService commandLogger;
     private final Map<String, Consumer<String[]>> commandsMap;
 
     private boolean isRunning = true;
 
-    public Parser(ApplicationContext applicationContext, Scanner scanner, UserService userService, JobService jobService, SuggestService suggestService, LogsService commandLogger, StatService statService) {
+    public Parser(ApplicationContext applicationContext, Scanner scanner, LogsService commandLogger, StringCommandsHandlerService commandsHandler) {
         this.applicationContext = applicationContext;
         this.scanner = scanner;
-        this.userService = userService;
-        this.jobService = jobService;
         this.commandLogger = commandLogger;
-        this.statService = statService;
 
         this.commandsMap = Map.of(
-                "user", this::parseUser,
-                "user-list", args -> userService.getUsers().values().forEach(System.out::println),
-                "job", this::parseJob,
-                "job-list", args -> jobService.getJobs().values().forEach(System.out::println),
-                "suggest", subcommands -> suggestService.suggestJob(subcommands[1]).forEach(System.out::println),
-                "history", args -> {
-                    try {
-                        this.parseHistory();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                },
-                "stat", this::parseStatistics,
+                "user", commandsHandler::handleUser,
+                "job", commandsHandler::handleJob,
+                "user-list", args -> commandsHandler.handleUserList().forEach(System.out::println),
+                "job-list", args -> commandsHandler.handleJobList().forEach(System.out::println),
+                "suggest", subcommands -> commandsHandler.handleSuggestions(subcommands).forEach(System.out::println),
+                "stat", subcommands -> commandsHandler.handleStatistics(subcommands).stream().map(Object::toString).forEach(System.out::println),
+                "history", args -> commandsHandler.handleHistory().forEach(System.out::println),
                 "exit", args -> handleExit()
         );
     }
 
-    public void parseCommands() {
+    private void parseCommands() {
         while (isRunning && scanner.hasNextLine()) {
             String command = scanner.nextLine();
             String[] subcommands = command.split(" ");
@@ -71,7 +62,7 @@ public class Parser implements CommandLineRunner {
         }
     }
 
-    public void parseHistoryCommands() {
+    private void parseHistoryCommands() {
         List<String> commandLogs;
         try {
             commandLogs = commandLogger.getCommands();
@@ -91,66 +82,6 @@ public class Parser implements CommandLineRunner {
             } else {
                 System.out.println("Invalid historical command!");
             }
-        }
-    }
-
-    private void parseUser(String[] subcommands) {
-        String name = subcommands[1];
-        Set<String> skills = new HashSet<>();
-        int experience = 0;
-
-        for (int i = 2; i < subcommands.length; i++) {
-            if (subcommands[i].startsWith("--skills=")) {
-                skills.addAll(List.of(subcommands[i].substring("--skills=".length()).split(",")));
-            } else if (subcommands[i].startsWith("--exp=")) {
-                experience = Integer.parseInt(subcommands[i].substring("--exp=".length()));
-            }
-        }
-
-        userService.addUser(name, skills, experience);
-    }
-
-    private void parseJob(String[] subcommands) {
-        String title = subcommands[1];
-        String company = "";
-        Set<String> tags = new HashSet<>();
-        int requiredExperience = 0;
-
-        for (int i = 2; i < subcommands.length; i++) {
-            if (subcommands[i].startsWith("--company=")) {
-                company = subcommands[i].substring("--company=".length());
-            } else if (subcommands[i].startsWith("--tags=")) {
-                tags.addAll(List.of(subcommands[i].substring("--tags=".length()).split(",")));
-            } else if (subcommands[i].startsWith("--exp=")) {
-                requiredExperience = Integer.parseInt(subcommands[i].substring("--exp=".length()));
-            }
-        }
-
-        jobService.addJob(title, company, tags, requiredExperience);
-    }
-
-    private void parseHistory() throws IOException {
-        List<String> commandLogs = commandLogger.getCommands();
-        commandLogs.forEach(System.out::println);
-    }
-
-    private void parseStatistics(String[] subcommands) {
-        switch (subcommands[1]) {
-            case "--exp":
-                if (subcommands.length > 2) {
-                    statService.jobsByExperience(Integer.parseInt(subcommands[2])).forEach(System.out::println);
-                }
-                break;
-            case "--match":
-                if (subcommands.length > 2) {
-                    statService.usersByMatches(Integer.parseInt(subcommands[2])).forEach(System.out::println);
-                }
-                break;
-            case "--top-skills":
-                if (subcommands.length > 2) {
-                    statService.topSkills(Integer.parseInt(subcommands[2])).forEach(System.out::println);
-                }
-                break;
         }
     }
 
