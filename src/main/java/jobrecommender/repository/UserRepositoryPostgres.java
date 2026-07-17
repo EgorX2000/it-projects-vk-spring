@@ -2,7 +2,7 @@ package jobrecommender.repository;
 
 import jobrecommender.domain.User;
 import lombok.AllArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -11,10 +11,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 @Repository
-@ConditionalOnProperty(prefix = "app", name = "repository.type", havingValue = "postgres")
+@Profile("postgres")
 @AllArgsConstructor
 public class UserRepositoryPostgres implements UserRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -26,11 +25,12 @@ public class UserRepositoryPostgres implements UserRepository {
                 from users u
                 left join user_skills us
                 on u.id = us.user_id
+                order by u.name collate "C";
                 """;
 
         return jdbcTemplate.query(sql, rs -> {
             record UserData(Set<String> skills, int experience) {}
-            Map<String, UserData> usersDataDB = new HashMap<>();
+            Map<String, UserData> usersDataDB = new LinkedHashMap<>();
 
             while (rs.next()) {
                 String name = rs.getString("name");
@@ -41,7 +41,7 @@ public class UserRepositoryPostgres implements UserRepository {
                 if (skill != null) usersDataDB.get(name).skills().add(skill);
             }
 
-            Map<String, User> users = new ConcurrentSkipListMap<>();
+            Map<String, User> users = new LinkedHashMap<>();
             for (String name : usersDataDB.keySet()) {
                 users.put(name, new User(
                         name,
@@ -60,7 +60,7 @@ public class UserRepositoryPostgres implements UserRepository {
         String sqlUser = """
                 insert into users (name, experience) values
                 (:name, :experience)
-                on conflict (name) do nothing
+                on conflict (name) do nothing;
                 """;
 
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
@@ -78,7 +78,7 @@ public class UserRepositoryPostgres implements UserRepository {
 
         String sqlSkills = """
                 insert into user_skills (user_id, skill) values
-                (:userId, :skill)
+                (:userId, :skill);
                 """;
 
         SqlParameterSource[] batchSqlParameterSource = user.getSkills().stream()

@@ -4,7 +4,6 @@ import jobrecommender.domain.Job;
 import jobrecommender.domain.User;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,7 +21,7 @@ public class StatService {
     public List<Job> jobsByExperience(int n) {
         return jobService.getJobs().values().stream()
                 .filter(job -> job.getRequiredExperience() >= n)
-                .sorted(Comparator.comparing(Job::getTitle)).toList();
+                .toList();
     }
 
     public List<User> usersByMatches(int n) {
@@ -34,7 +33,6 @@ public class StatService {
 
                     return suitableJobsCount >= n;
                 })
-                .sorted(Comparator.comparing(User::getName))
                 .toList();
     }
 
@@ -44,7 +42,7 @@ public class StatService {
                 .collect(Collectors.groupingBy(skill -> skill, Collectors.counting()));
 
         return skillsCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed().thenComparing(Map.Entry::getKey))
                 .limit(n)
                 .map(Map.Entry::getKey)
                 .sorted()

@@ -4,6 +4,7 @@ import jobrecommender.service.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @Component
+@Profile("!test")
 public class Parser implements CommandLineRunner {
     private final ApplicationContext applicationContext;
     private final Scanner scanner;

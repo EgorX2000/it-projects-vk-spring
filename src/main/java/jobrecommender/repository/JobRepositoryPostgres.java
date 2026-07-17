@@ -2,7 +2,7 @@ package jobrecommender.repository;
 
 import jobrecommender.domain.Job;
 import lombok.AllArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -11,10 +11,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 @Repository
-@ConditionalOnProperty(prefix = "app", name = "repository.type", havingValue = "postgres")
+@Profile("postgres")
 @AllArgsConstructor
 public class JobRepositoryPostgres implements JobRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -26,11 +25,12 @@ public class JobRepositoryPostgres implements JobRepository {
                 from jobs j
                 left join job_tags jt
                 on j.id = jt.job_id
+                order by j.title collate "C";
                 """;
 
         return jdbcTemplate.query(sql, rs -> {
             record JobData(String company, Set<String> tags, int requiredExperience) {}
-            Map<String, JobData> jobsDataDB = new HashMap<>();
+            Map<String, JobData> jobsDataDB = new LinkedHashMap<>();
 
             while (rs.next()) {
                 String title = rs.getString("title");
@@ -42,7 +42,7 @@ public class JobRepositoryPostgres implements JobRepository {
                 if (tag != null) jobsDataDB.get(title).tags().add(tag);
             }
 
-            Map<String, Job> jobs = new ConcurrentSkipListMap<>();
+            Map<String, Job> jobs = new LinkedHashMap<>();
             for (String title : jobsDataDB.keySet()) {
                 jobs.put(title, new Job(
                         title,
@@ -62,7 +62,7 @@ public class JobRepositoryPostgres implements JobRepository {
         String sqlJob = """
                 insert into jobs (title, company, required_experience) values
                 (:title, :company, :requiredExperience)
-                on conflict (title) do nothing
+                on conflict (title) do nothing;
                 """;
 
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
@@ -81,7 +81,7 @@ public class JobRepositoryPostgres implements JobRepository {
 
         String sqlSkills = """
                 insert into job_tags (job_id, tag) values
-                (:jobId, :tag)
+                (:jobId, :tag);
                 """;
 
         SqlParameterSource[] batchSqlParameterSource = job.getTags().stream()

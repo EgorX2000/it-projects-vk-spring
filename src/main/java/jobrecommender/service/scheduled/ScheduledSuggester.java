@@ -7,6 +7,7 @@ import jobrecommender.service.UserService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -30,8 +31,10 @@ public class ScheduledSuggester{
                 .map(user -> Map.entry(user, suggestService.getJobMatches(user.getName())))
                 .filter(entry -> !entry.getValue().isEmpty())
                 .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> entry.getValue().get(0)
-                ));
+                        entry -> entry.getValue().get(0),
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new)
+                );
 
         bestMatchesForEachUser.forEach((key, value) -> System.out.printf("%s, best offer - %s%n", key.getName(), value.getJob().toString()));
     }
