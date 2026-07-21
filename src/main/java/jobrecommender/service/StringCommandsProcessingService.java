@@ -2,25 +2,44 @@ package jobrecommender.service;
 
 import jobrecommender.domain.Job;
 import jobrecommender.domain.User;
+import lombok.Getter;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
 
 @Service
-public class StringCommandsHandlerService {
+public class StringCommandsProcessingService {
+    private final ApplicationContext applicationContext;
     private final UserService userService;
     private final JobService jobService;
     private final SuggestService suggestService;
     private final StatService statService;
     private final LogsService commandLogger;
 
-    public StringCommandsHandlerService(UserService userService, JobService jobService, StatService statService, SuggestService suggestService, LogsService commandLogger) {
+    @Getter
+    private boolean isRunning = true;
+
+    public StringCommandsProcessingService(ApplicationContext applicationContext, UserService userService, JobService jobService, StatService statService, SuggestService suggestService, LogsService commandLogger) {
+        this.applicationContext = applicationContext;
         this.userService = userService;
         this.jobService = jobService;
         this.statService = statService;
         this.suggestService = suggestService;
         this.commandLogger = commandLogger;
+    }
+
+    public void processCommandAndLog(String command, Runnable acceptedCommandHandler) {
+        acceptedCommandHandler.run();
+        if (!(command.equals("exit") || command.startsWith("exit "))) {
+            try {
+                commandLogger.logCommand(command);
+            } catch (IOException e) {
+                System.out.println("Error while writing command log: " + e.getMessage());
+            }
+        }
     }
 
     public void handleUser(String[] subcommands) {
@@ -70,11 +89,11 @@ public class StringCommandsHandlerService {
         return suggestService.suggestJob(subcommands[1]);
     }
 
-    public List<?> handleStatistics(String[] subcommands) {
+    public List<String> handleStatistics(String[] subcommands) {
         if (subcommands.length > 2) {
             return switch (subcommands[1]) {
-                case "--exp" -> statService.jobsByExperience(Integer.parseInt(subcommands[2]));
-                case "--match" -> statService.usersByMatches(Integer.parseInt(subcommands[2]));
+                case "--exp" -> statService.jobsByExperience(Integer.parseInt(subcommands[2])).stream().map(Job::toString).toList();
+                case "--match" -> statService.usersByMatches(Integer.parseInt(subcommands[2])).stream().map(User::toString).toList();
                 case "--top-skills" -> statService.topSkills(Integer.parseInt(subcommands[2]));
                 default -> Collections.emptyList();
             };
@@ -89,5 +108,11 @@ public class StringCommandsHandlerService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void handleExit() {
+        isRunning = false;
+
+        SpringApplication.exit(applicationContext);
     }
 }

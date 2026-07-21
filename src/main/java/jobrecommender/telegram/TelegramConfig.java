@@ -1,7 +1,7 @@
 package jobrecommender.telegram;
 
 import jakarta.annotation.PreDestroy;
-import jobrecommender.service.StringCommandsHandlerService;
+import jobrecommender.service.StringCommandsProcessingService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,13 +16,13 @@ public class TelegramConfig {
     private BotSession botSession;
 
     @Bean
-    public TelegramBot registerBot(@Value("${telegram.bot.name}") String botName, @Value("${telegram.bot.token}") String botToken, StringCommandsHandlerService commandsHandler) {
+    public TelegramBot registerBot(@Value("${telegram.bot.name}") String botName, @Value("${telegram.bot.token}") String botToken, StringCommandsProcessingService commandsProcessor) {
         DefaultBotOptions botOptions = new DefaultBotOptions();
         botOptions.setProxyHost("127.0.0.1");
         botOptions.setProxyPort(10808);
         botOptions.setProxyType(DefaultBotOptions.ProxyType.SOCKS5);
 
-        TelegramBot telegramBot = new TelegramBot(botOptions, botToken, botName, commandsHandler);
+        TelegramBot telegramBot = new TelegramBot(botOptions, botToken, botName, commandsProcessor);
 
         try {
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);

@@ -1,10 +1,8 @@
 package jobrecommender.cli;
 
 import jobrecommender.service.LogsService;
-import jobrecommender.service.StringCommandsHandlerService;
+import jobrecommender.service.StringCommandsProcessingService;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -17,45 +15,36 @@ import java.util.function.Consumer;
 @Component
 @Profile("!test")
 public class Parser implements CommandLineRunner {
-    private final ApplicationContext applicationContext;
     private final Scanner scanner;
+    private final StringCommandsProcessingService commandProcessor;
     private final LogsService commandLogger;
     private final Map<String, Consumer<String[]>> commandsMap;
 
-    private boolean isRunning = true;
-
-    public Parser(ApplicationContext applicationContext, Scanner scanner, LogsService commandLogger, StringCommandsHandlerService commandsHandler) {
-        this.applicationContext = applicationContext;
+    public Parser(Scanner scanner, StringCommandsProcessingService commandProcessor, LogsService commandLogger) {
         this.scanner = scanner;
+        this.commandProcessor = commandProcessor;
         this.commandLogger = commandLogger;
 
         this.commandsMap = Map.of(
-                "user", commandsHandler::handleUser,
-                "job", commandsHandler::handleJob,
-                "user-list", args -> commandsHandler.handleUserList().forEach(System.out::println),
-                "job-list", args -> commandsHandler.handleJobList().forEach(System.out::println),
-                "suggest", subcommands -> commandsHandler.handleSuggestions(subcommands).forEach(System.out::println),
-                "stat", subcommands -> commandsHandler.handleStatistics(subcommands).stream().map(Object::toString).forEach(System.out::println),
-                "history", args -> commandsHandler.handleHistory().forEach(System.out::println),
-                "exit", args -> handleExit()
+                "user", commandProcessor::handleUser,
+                "job", commandProcessor::handleJob,
+                "user-list", args -> commandProcessor.handleUserList().forEach(System.out::println),
+                "job-list", args -> commandProcessor.handleJobList().forEach(System.out::println),
+                "suggest", subcommands -> commandProcessor.handleSuggestions(subcommands).forEach(System.out::println),
+                "stat", subcommands -> commandProcessor.handleStatistics(subcommands).forEach(System.out::println),
+                "history", args -> commandProcessor.handleHistory().forEach(System.out::println),
+                "exit", args -> commandProcessor.handleExit()
         );
     }
 
     private void parseCommands() {
-        while (isRunning && scanner.hasNextLine()) {
+        while (commandProcessor.isRunning() && scanner.hasNextLine()) {
             String command = scanner.nextLine();
             String[] subcommands = command.split(" ");
 
             Consumer<String[]> commandHandler = commandsMap.get(subcommands[0]);
             if (commandHandler != null) {
-                commandHandler.accept(subcommands);
-                if (!subcommands[0].equals("exit")) {
-                    try {
-                        commandLogger.logCommand(command);
-                    } catch (IOException e) {
-                        System.out.println("Error while writing command log: " + e.getMessage());
-                    }
-                }
+                commandProcessor.processCommandAndLog(command, () -> commandHandler.accept(subcommands));
             } else {
                 System.out.println("Invalid command!");
             }
@@ -85,21 +74,15 @@ public class Parser implements CommandLineRunner {
         }
     }
 
-    private void handleExit() {
-        isRunning = false;
-
-        SpringApplication.exit(applicationContext);
-    }
-
     @Override
     public void run(String... args) throws Exception {
         try {
             parseHistoryCommands();
             parseCommands();
         } catch (Exception e) {
-            if (isRunning) {
+            if (commandProcessor.isRunning()) {
                 System.out.println("Error: " + e.getMessage());
-                handleExit();
+                commandProcessor.handleExit();
             }
         }
     }
