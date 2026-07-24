@@ -33,7 +33,7 @@ public class StringCommandsProcessingService {
 
     public void processCommandAndLog(String command, Runnable acceptedCommandHandler) {
         acceptedCommandHandler.run();
-        if (!(command.equals("exit") || command.startsWith("exit "))) {
+        if (!(command.startsWith("exit") || command.startsWith("/"))) {
             try {
                 commandLogger.logCommand(command);
             } catch (IOException e) {
